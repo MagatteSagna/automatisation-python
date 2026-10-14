@@ -4,13 +4,13 @@ data = {
     "nom": ["  diop ", "FALL", "Ndiaye", "Ndiaye", "Sow", "Ba", None],
     "prenom": ["Awa", "moussa", "Fatou", "Fatou", "  Cheikh", "Aminata", "Omar"],
     "email": [
-        "awa.diop@mail.com",
-        "moussa.fall@mail",       # invalide : pas de .com
-        "Fatou@Mail.COM",
-        "Fatou@Mail.COM",         # doublon
-        "cheikh.sow@mail.com",
+        "awa.diop@gmail.com",
+        "moussa.fall@gmail",       # invalide : pas de .com
+        "Fatou@GMail.COM",
+        "Fatou@GMail.COM",         # doublon
+        "cheikh.sow@gmail.com",
         None,                     # manquant
-        "omar@@mail.com",         # invalide
+        "omar@@gmail.com",         # invalide
     ],
     "telephone": ["771234567", "770000000", "781112223", "781112223", None, "761234567", "770001111"],
 }
