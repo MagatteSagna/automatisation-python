@@ -3,6 +3,7 @@ import re #permet de rechercher des motifs dans du texte par exemple pour ici le
 from pathlib import Path
 
 import pandas as pd
+from src.utils import unique_path
 
 logger = logging.getLogger(__name__)
 
@@ -105,3 +106,21 @@ def quality_report(df: pd.DataFrame) -> dict:
     }
     logger.info("Bilan qualité : %s", report)
     return report
+def remove_duplicates(df: pd.DataFrame) -> pd.DataFrame:
+    """Supprime les lignes en doublon (la 1re occurrence est gardée). Retourne une copie."""
+    mask = detect_duplicates(df)
+    logger.info("%d doublon(s) supprimé(s)", int(mask.sum()))
+    return df[~mask].reset_index(drop=True)
+
+
+def export_dataframe(df: pd.DataFrame, source_path, output_dir="data/output") -> Path:
+    """Exporte les données nettoyées dans output_dir, sans jamais écraser un fichier existant."""
+    source_path = Path(source_path)
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    target = unique_path(output_dir / f"{source_path.stem}_nettoye.xlsx")
+    df.to_excel(target, index=False, engine="openpyxl")
+
+    logger.info("Fichier nettoyé exporté : %s (%d lignes)", target, len(df))
+    return target
