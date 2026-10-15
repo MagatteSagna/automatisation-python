@@ -1,5 +1,7 @@
 import logging
+import tempfile
 import time
+from pathlib import Path
 
 from src.data_cleaning import (
     clean_dataframe, export_dataframe, load_file, quality_report, remove_duplicates,
@@ -43,3 +45,11 @@ def organize_folder(source_dir, dest_dir="data/output/classes", mode="extension"
     report_path = save_report(report, dest_dir)
     logger.info("=== Terminé en %.2f s, rapport : %s ===", report["duree_secondes"], report_path)
     return report
+
+def clean_upload(filename, content: bytes, output_dir="data/output") -> dict:
+    """Nettoie un fichier reçu sous forme d'octets (cas de l'interface web). Retourne le rapport."""
+    name = Path(filename).name  # garde seulement le nom, jamais un chemin
+    with tempfile.TemporaryDirectory() as tmp:
+        path = Path(tmp) / name
+        path.write_bytes(content)
+        return clean_file(path, output_dir)
