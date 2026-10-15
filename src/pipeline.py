@@ -26,7 +26,9 @@ def clean_file(path, output_dir="data/output") -> dict:
         raise
 
     report = build_cleaning_report(path, quality, len(df), [exported], time.perf_counter() - start)
+    report["fichier_nettoye"] = str(exported)
     report_path = save_report(report, output_dir)
+    report["fichier_rapport"] = str(report_path)
     logger.info("=== Terminé en %.2f s, rapport : %s ===", report["duree_secondes"], report_path)
     return report
 
@@ -43,6 +45,7 @@ def organize_folder(source_dir, dest_dir="data/output/classes", mode="extension"
 
     report = build_organizing_report(source_dir, results, mode, time.perf_counter() - start)
     report_path = save_report(report, dest_dir)
+    report["fichier_rapport"] = str(report_path)
     logger.info("=== Terminé en %.2f s, rapport : %s ===", report["duree_secondes"], report_path)
     return report
 

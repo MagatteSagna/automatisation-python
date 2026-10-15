@@ -1,5 +1,7 @@
 import logging
+from pathlib import Path
 
+import pandas as pd
 import streamlit as st
 
 from src.pipeline import clean_upload, organize_folder
@@ -35,7 +37,8 @@ def show_sidebar():
         st.markdown(
             "1. **Charge** un fichier Excel ou CSV\n"
             "2. **Lance** le traitement\n"
-            "3. **Consulte** le rapport"
+            "3. **Consulte** le rapport\n"
+            "4. **Télécharge** les résultats"
         )
         st.subheader("Règles de nettoyage")
         st.markdown(
@@ -49,6 +52,19 @@ def show_sidebar():
         st.caption("Journal : logs/automatisation.log")
 
 
+XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+
+def download_button_for(path_str: str, label: str, mime: str, key: str):
+    """Bouton de téléchargement d'un fichier généré (grisé si le fichier a disparu)."""
+    path = Path(path_str)
+    if path.exists():
+        st.download_button(label, data=path.read_bytes(), file_name=path.name, mime=mime, key=key)
+    else:
+        st.button(label, disabled=True, key=key)
+        st.caption(f"Fichier introuvable : {path}")
+
+
 def show_cleaning_report(r: dict):
     st.success("Traitement terminé.")
 
@@ -57,8 +73,9 @@ def show_cleaning_report(r: dict):
     c2.metric("Lignes exportées", r["lignes_exportees"], border=True)
     c3.metric("Doublons supprimés", r["doublons_supprimes"], border=True)
 
+    manquants = sum(r["champs_manquants"].values())
     c4, c5, c6 = st.columns(3)
-    c4.metric("Champs manquants", sum(r["champs_manquants"].values()), border=True)
+    c4.metric("Champs manquants", manquants, border=True)
     c5.metric("E-mails invalides", r["emails_invalides"], border=True)
     c6.metric("Durée", f"{r['duree_secondes']} s", border=True)
 
@@ -71,6 +88,29 @@ def show_cleaning_report(r: dict):
             f"E-mails invalides aux lignes Excel : {lignes}. "
             "Ils sont signalés mais conservés dans le fichier exporté."
         )
+
+    st.markdown("#### Anomalies détectées")
+    anomalies = pd.Series(
+        {
+            "Doublons": r["doublons_supprimes"],
+            "Champs manquants": manquants,
+            "E-mails invalides": r["emails_invalides"],
+        }
+    )
+    st.bar_chart(anomalies)
+
+    st.markdown("#### Aperçu du fichier nettoyé")
+    try:
+        st.dataframe(pd.read_excel(r["fichier_nettoye"], dtype=str), hide_index=True)
+    except Exception:
+        st.caption("Aperçu indisponible (fichier introuvable).")
+
+    st.markdown("#### Télécharger les résultats")
+    d1, d2 = st.columns(2)
+    with d1:
+        download_button_for(r["fichier_nettoye"], "⬇️ Fichier nettoyé (.xlsx)", XLSX_MIME, "dl_nettoye")
+    with d2:
+        download_button_for(r["fichier_rapport"], "⬇️ Rapport (.txt)", "text/plain", "dl_rapport_nettoyage")
 
     with st.expander("Fichiers générés"):
         st.markdown("\n".join(f"- `{f}`" for f in r["fichiers_generes"]))
@@ -89,6 +129,9 @@ def show_organizing_report(r: dict):
 
     for erreur in r["erreurs"]:
         st.error(erreur)
+
+    st.markdown("#### Télécharger le rapport")
+    download_button_for(r["fichier_rapport"], "⬇️ Rapport de classement (.txt)", "text/plain", "dl_rapport_classement")
 
     with st.expander("Fichiers générés"):
         st.markdown("\n".join(f"- `{f}`" for f in r["fichiers_generes"]))
