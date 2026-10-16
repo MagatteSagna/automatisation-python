@@ -10,6 +10,24 @@ logger = logging.getLogger(__name__)
 # Modèle d'un e-mail valide : texte@domaine.extension
 EMAIL_REGEX = re.compile(r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}$")
 
+def _detect_separator(path: Path, encoding: str) -> str:
+    """Devine le séparateur d'un CSV (, ou ; ou tabulation) d'après la ligne d'en-têtes."""
+    with open(path, encoding=encoding) as f:
+        first_line = f.readline()
+    counts = {sep: first_line.count(sep) for sep in (",", ";", "\t")}
+    best = max(counts, key=counts.get)
+    return best if counts[best] > 0 else ","
+
+
+def _read_csv(path: Path) -> pd.DataFrame:
+    """Lit un CSV en UTF-8, puis en cp1252 (encodage des CSV enregistrés depuis Excel)."""
+    for encoding in ("utf-8-sig", "cp1252"):
+        try:
+            sep = _detect_separator(path, encoding)
+            return pd.read_csv(path, sep=sep, encoding=encoding, dtype=str)
+        except UnicodeDecodeError:
+            continue
+    raise ValueError("Encodage du fichier non reconnu.")
 
 def load_file(path) -> pd.DataFrame:
     """Charge un fichier CSV ou Excel et vérifie qu'il est lisible."""
@@ -31,8 +49,7 @@ def load_file(path) -> pd.DataFrame:
     try:
         # dtype=str : tout est lu comme du texte (les téléphones gardent leurs zéros)
         if extension == ".csv":
-            # sep=None : pandas devine le séparateur (, ou ;)
-            df = pd.read_csv(path, sep=None, engine="python", encoding="utf-8-sig", dtype=str)
+            df = _read_csv(path)
         else:
             df = pd.read_excel(path, engine="openpyxl", dtype=str)
     except Exception as e:
